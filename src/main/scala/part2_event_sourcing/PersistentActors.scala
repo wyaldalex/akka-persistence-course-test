@@ -19,6 +19,8 @@ object PersistentActorsTest extends App {
     //Events , these are the actually persisted ones
     case class InvoiceRecorded(id: Int, recipient: String, date: Date, amount: Int)
     case class InvoiceBulk(invoices: List[Invoice])
+    //Special Messages for graceful shutdown
+    case object Shutdown
     def props : Props = Props(new Accountant)
   }
   class Accountant extends  PersistentActor with ActorLogging {
@@ -69,7 +71,10 @@ object PersistentActorsTest extends App {
           log.info(s"Bulk Persisted ${e} as invoice ${e.id}, for total amount ${e.amount}")
         }
 
-      case "pring" =>
+      case Shutdown =>
+        log.info(s"Warning, Shut Down activated latest invoice: $latestInvoiceId")
+        context.stop(self)
+      case "print" =>
         log.info(s"Current status is invoice: $latestInvoiceId and total amount: $totalAmount")
 
     }
@@ -123,8 +128,10 @@ object PersistentActorsTest extends App {
 
   /*
   * NEVER PERSIST EVENTS FROM A FUTURE!!!!
-  * BREAKS ENCAPSULATION FOR ACTORS NOOOO!! D: 
+  * BREAKS ENCAPSULATION FOR ACTORS NOOOO!! D:
   *  */
+  //Define your own graceful shutdown using context.stop(self)
+  //accountant ! Accountant.Shutdown
 
 
 }
