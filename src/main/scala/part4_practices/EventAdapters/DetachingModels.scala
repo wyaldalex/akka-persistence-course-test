@@ -43,13 +43,13 @@ object DetachingModels extends App {
   import DomainModel._
   val system = ActorSystem("DetachingModels", ConfigFactory.load().getConfig("detachingModels"))
   val couponManager = system.actorOf(CouponManager.props, "couponManager")
-/*
-  for(i <- 1 to 5) {
-    val coupon = Coupon(s"MEGA_COUPON_${i}",100)
-    val user = User(s"${i}", s"user_${i}@tudux.com")
 
-    couponManager ! ApplyCoupon(coupon,user)
-  } */
+//  for(i <- 6 to 20) {
+//    val coupon = Coupon(s"MEGA_COUPON_${i}",100)
+//    val user = User(s"${i}", s"user_${i}@tudux.com",s"some-tudux-name${i}")
+//
+//    couponManager ! ApplyCoupon(coupon,user)
+//  }
 
 
 
@@ -57,7 +57,7 @@ object DetachingModels extends App {
 
 object DomainModel {
 
-  case class User(id: String, email: String)
+  case class User(id: String, email: String, name: String)
   case class Coupon(code: String, promotionAmount: Int)
   //command
   case class ApplyCoupon(coupon: Coupon, user: User)
@@ -67,6 +67,7 @@ object DomainModel {
 
 object DataModel {
   case class WrittenCouponApplied(code: String, userId: String, userEmail: String)
+  case class WrittenCouponAppliedV2(code: String, userId: String, userEmail: String, name: String)
 }
 
 class ModelAdapter extends EventAdapter {
@@ -80,7 +81,10 @@ class ModelAdapter extends EventAdapter {
   override def fromJournal(event: Any, manifest: String): EventSeq = event match {
     case event @ WrittenCouponApplied(code,userId,userEmail) =>
       println(s"Converting $event to Domain Model")
-      EventSeq.single(CouponApplied(code, User(userId,userEmail)))
+      EventSeq.single(CouponApplied(code, User(userId,userEmail, "")))
+    case event @ WrittenCouponAppliedV2(code, userId, userEmail, name) =>
+      println(s"Converting $event to Domain Model")
+      EventSeq.single(CouponApplied(code, User(userId, userEmail, name)))
     case other =>
     EventSeq.single(other)
   }
@@ -89,7 +93,7 @@ class ModelAdapter extends EventAdapter {
   override def toJournal(event: Any): Any = event match {
     case event @ CouponApplied(code, user) =>
       println(s"Converting $event to Data model")
-      WrittenCouponApplied(code, user.id, user.email)
+      WrittenCouponAppliedV2(code, user.id, user.email, user.name) //store only version 2
   }
 }
 
